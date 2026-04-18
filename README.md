@@ -15,6 +15,8 @@ Opens Markdown in a custom editor with draggable image resizing, reset actions, 
 
 ## Usage
 
+![demo](./resources/demo.gif)
+
 ### Open the custom editor
 
 1. Open a Markdown file.
