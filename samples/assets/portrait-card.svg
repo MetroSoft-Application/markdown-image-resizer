@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 540" role="img"
+    aria-label="Portrait sample">
+    <defs>
+        <linearGradient id="poster" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f6e5c9" />
+            <stop offset="100%" stop-color="#bc6c25" />
+        </linearGradient>
+    </defs>
+    <rect width="360" height="540" rx="24" fill="url(#poster)" />
+    <rect x="36" y="42" width="288" height="456" rx="18" fill="#fff7eb" opacity="0.82" />
+    <circle cx="180" cy="168" r="68" fill="#ddb892" />
+    <path d="M92 360c20-60 54-92 88-92s68 32 88 92" fill="none" stroke="#5f0f40" stroke-width="18"
+        stroke-linecap="round" />
+    <text x="64" y="432" fill="#5f0f40" font-size="28" font-family="Segoe UI, Arial, sans-serif"
+        font-weight="700">Portrait Card</text>
+    <text x="64" y="468" fill="#5f0f40" font-size="18" font-family="Georgia, serif">Title handling
+        and aspect ratio check</text>
+</svg>

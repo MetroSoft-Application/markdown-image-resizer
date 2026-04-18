@@ -1,0 +1,79 @@
+{
+  "name": "markdown-image-resizer",
+  "displayName": "Markdown Image Resizer",
+  "description": "A VS Code extension that opens Markdown in a custom editor with mouse-driven image resizing, reset actions, and source jumps.",
+  "version": "1.0.0",
+  "publisher": "MetroSoft-Application",
+  "icon": "resources/icon.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "image",
+    "resize",
+    "custom editor",
+    "preview"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdownImageResizer.open",
+        "title": "Open With Markdown Image Resizer",
+        "category": "Markdown Image Resizer",
+        "icon": "$(markdown)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "markdownImageResizer.open",
+          "when": "resourceExtname == .md",
+          "group": "navigation@1"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "markdownImageResizer.open",
+          "when": "resourceExtname == .md",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "markdownImageResizer.editor",
+        "displayName": "Markdown Image Resizer",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          }
+        ],
+        "priority": "option"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "webpack --mode production",
+    "watch": "webpack --mode development --watch",
+    "compile": "tsc --noEmit",
+    "vscode:prepublish": "npm run build"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^20.12.12",
+    "@types/vscode": "^1.85.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  }
+}

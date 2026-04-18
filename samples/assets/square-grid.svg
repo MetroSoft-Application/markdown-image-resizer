@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 420" role="img" aria-label="Square sample">
+    <rect width="420" height="420" rx="28" fill="#213547" />
+    <g fill="#f0e6d2">
+        <rect x="42" y="42" width="96" height="96" rx="14" />
+        <rect x="162" y="42" width="96" height="96" rx="14" opacity="0.9" />
+        <rect x="282" y="42" width="96" height="96" rx="14" opacity="0.8" />
+        <rect x="42" y="162" width="96" height="96" rx="14" opacity="0.88" />
+        <rect x="162" y="162" width="96" height="96" rx="14" fill="#c97c5d" />
+        <rect x="282" y="162" width="96" height="96" rx="14" opacity="0.88" />
+        <rect x="42" y="282" width="96" height="96" rx="14" opacity="0.8" />
+        <rect x="162" y="282" width="96" height="96" rx="14" opacity="0.9" />
+        <rect x="282" y="282" width="96" height="96" rx="14" />
+    </g>
+    <text x="36" y="398" fill="#fff8ea" font-size="26" font-family="Segoe UI, Arial, sans-serif"
+        font-weight="700">Square Grid</text>
+</svg>
