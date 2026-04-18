@@ -1,6 +1,6 @@
-# Markdown Image Resizer Test Samples
+# Markdown Image Resize Viewer Test Samples
 
-このディレクトリには、Markdown Image Resizer の動作確認用サンプルをまとめています。
+このディレクトリには、Markdown Image Resize Viewer の動作確認用サンプルをまとめています。
 
 ## Files
 
@@ -16,7 +16,7 @@
 ## Expected checks
 
 1. `.md` ファイルを通常エディタで開く。
-2. **Markdown Image Resizer: Open With Markdown Image Resizer** を実行する。
+2. **Markdown Image Resize Viewer: Open With Markdown Image Resize Viewer** を実行する。
 3. 画像右下のハンドルをドラッグする。
 4. マウスを離した後、元の Markdown ソースが更新されることを確認する。
 

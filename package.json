@@ -1,6 +1,6 @@
 {
-  "name": "markdown-image-resizer",
-  "displayName": "Markdown Image Resizer",
+  "name": "markdown-image-resize-viewer",
+  "displayName": "Markdown Image Resize Viewer",
   "description": "A VS Code extension that opens Markdown in a custom editor with mouse-driven image resizing, reset actions, and source jumps.",
   "version": "1.0.0",
   "publisher": "MetroSoft-Application",
@@ -30,8 +30,8 @@
     "commands": [
       {
         "command": "markdownImageResizer.open",
-        "title": "Open With Markdown Image Resizer",
-        "category": "Markdown Image Resizer",
+        "title": "Open With Markdown Image Resize Viewer",
+        "category": "Markdown Image Resize Viewer",
         "icon": "$(markdown)"
       }
     ],
@@ -54,7 +54,7 @@
     "customEditors": [
       {
         "viewType": "markdownImageResizer.editor",
-        "displayName": "Markdown Image Resizer",
+        "displayName": "Markdown Image Resize Viewer",
         "selector": [
           {
             "filenamePattern": "*.md"

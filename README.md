@@ -1,4 +1,4 @@
-# Markdown Image Resizer
+# Markdown Image Resize Viewer
 
 Opens Markdown in a custom editor with draggable image resizing, reset actions, and preview-to-source jumps.
 
@@ -20,11 +20,11 @@ Opens Markdown in a custom editor with draggable image resizing, reset actions, 
 ### Open the custom editor
 
 1. Open a Markdown file.
-2. Run **"Markdown Image Resizer: Open With Markdown Image Resizer"** or use **Reopen Editor With...**.
+2. Run **"Markdown Image Resize Viewer: Open With Markdown Image Resize Viewer"** or use **Reopen Editor With...**.
 
 ### Resize an image
 
-1. Open a Markdown file in the Markdown Image Resizer custom editor.
+1. Open a Markdown file in the Markdown Image Resize Viewer custom editor.
 2. Hover an image and drag the lower-right handle.
 3. Release the mouse button to write the new width back into the Markdown source.
 

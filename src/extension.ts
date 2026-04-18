@@ -27,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             const target = resource ?? vscode.window.activeTextEditor?.document.uri;
 
             if (!target || !target.path.toLowerCase().endsWith('.md')) {
-                void vscode.window.showInformationMessage('Open a Markdown file before using Markdown Image Resizer.');
+                void vscode.window.showInformationMessage('Open a Markdown file before using Markdown Image Resize Viewer.');
                 return;
             }
 

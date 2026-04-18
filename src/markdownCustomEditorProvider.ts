@@ -74,7 +74,7 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
             localResourceRoots: getLocalResourceRoots(this.extensionUri, document)
         };
 
-        webviewPanel.title = `${path.basename(document.uri.fsPath)} · Markdown Image Resizer`;
+        webviewPanel.title = `${path.basename(document.uri.fsPath)} · Markdown Image Resize Viewer`;
         webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
         const state: EditorState = {
@@ -196,7 +196,7 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
         const applied = await vscode.workspace.applyEdit(edit);
 
         if (!applied) {
-            void vscode.window.showWarningMessage('Markdown Image Resizer could not update the Markdown source.');
+            void vscode.window.showWarningMessage('Markdown Image Resize Viewer could not update the Markdown source.');
         }
     }
 
@@ -218,7 +218,7 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
         const applied = await vscode.workspace.applyEdit(edit);
 
         if (!applied) {
-            void vscode.window.showWarningMessage('Markdown Image Resizer could not reset the image size.');
+            void vscode.window.showWarningMessage('Markdown Image Resize Viewer could not reset the image size.');
         }
     }
 
@@ -255,7 +255,7 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https: http: data:; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';" />
-    <title>Markdown Image Resizer</title>
+    <title>Markdown Image Resize Viewer</title>
     <style nonce="${nonce}">
         :root {
             color-scheme: light dark;
