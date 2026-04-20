@@ -308,6 +308,7 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
         }
 
         .document {
+            position: relative;
             width: 100%;
             min-height: calc(100vh - 40px);
             padding: 0 0 24px;
@@ -373,6 +374,20 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
             width: fit-content;
             max-width: 100%;
             margin: 8px 0 18px;
+        }
+
+        .ifm-image-frame.is-overlay {
+            position: absolute;
+            width: auto;
+            max-width: none;
+            margin: 0;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        .ifm-image-frame.is-overlay .ifm-image-actions,
+        .ifm-image-frame.is-overlay .ifm-resize-handle {
+            pointer-events: auto;
         }
 
         .ifm-image-frame.is-readonly {
@@ -542,7 +557,7 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
 
         function initializeImages(images) {
             const imageLookup = new Map(images.map((image) => [image.id, image]));
-            const imageElements = article.querySelectorAll('img[data-imagefree-id]');
+            const imageElements = article.querySelectorAll('img[data-imagefree-id], image[data-imagefree-id]');
 
             imageElements.forEach((element) => {
                 const imageId = element.dataset.imagefreeId;
@@ -557,10 +572,92 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
         }
 
         function enhanceImage(imageElement, image) {
+            if (shouldUseOverlayFrame(imageElement)) {
+                enhanceOverlayImage(imageElement, image);
+                return;
+            }
+
+            enhanceWrappedImage(imageElement, image);
+        }
+
+        function shouldUseOverlayFrame(imageElement) {
+            const tagName = imageElement.tagName.toLowerCase();
+            const parentTagName = imageElement.parentElement?.tagName?.toLowerCase();
+            return tagName === 'image' || parentTagName === 'picture';
+        }
+
+        function enhanceWrappedImage(imageElement, image) {
             if (!imageElement.parentNode) {
                 return;
             }
 
+            const { frame, badge, meta } = createImageFrameChrome(image);
+
+            imageElement.parentNode.insertBefore(frame, imageElement);
+            frame.appendChild(imageElement);
+
+            imageElement.style.display = 'block';
+            imageElement.style.height = 'auto';
+            imageElement.style.maxWidth = '100%';
+
+            if (image.resizable) {
+                const handle = createResizeHandle((event) => startWrappedResize(event, image, frame, imageElement, badge));
+                frame.appendChild(handle);
+            }
+
+            const handleImageReady = once(() => {
+                frame.classList.remove('is-broken');
+                applyInitialWrappedImageWidth(frame, imageElement);
+                updateBadge(badge, imageElement);
+            });
+
+            const handleImageError = once(() => {
+                frame.classList.add('is-broken');
+                meta.textContent = 'Image could not be loaded';
+                frame.style.removeProperty('width');
+                const handle = frame.querySelector('.ifm-resize-handle');
+
+                if (handle) {
+                    handle.remove();
+                }
+            });
+
+            initializeImageElementState(imageElement, handleImageReady, handleImageError);
+        }
+
+        function enhanceOverlayImage(imageElement, image) {
+            const { frame, badge, meta } = createImageFrameChrome(image);
+            frame.classList.add('is-overlay');
+            article.appendChild(frame);
+
+            const syncFrame = () => syncOverlayFrame(frame, imageElement);
+
+            if (image.resizable) {
+                const handle = createResizeHandle((event) => startOverlayResize(event, image, frame, imageElement, badge, syncFrame));
+                frame.appendChild(handle);
+            }
+
+            const handleImageReady = once(() => {
+                frame.classList.remove('is-broken');
+                syncFrame();
+                updateBadge(badge, imageElement);
+            });
+
+            const handleImageError = once(() => {
+                frame.classList.add('is-broken');
+                meta.textContent = 'Image could not be loaded';
+                syncFrame();
+                const handle = frame.querySelector('.ifm-resize-handle');
+
+                if (handle) {
+                    handle.remove();
+                }
+            });
+
+            initializeImageElementState(imageElement, handleImageReady, handleImageError);
+        }
+
+        function createImageFrameChrome(image) {
             const frame = document.createElement('span');
             frame.className = 'ifm-image-frame';
             frame.dataset.imagefreeId = image.id;
@@ -568,12 +665,6 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
             if (!image.resizable) {
                 frame.classList.add('is-readonly');
             }
-
-            imageElement.parentNode.insertBefore(frame, imageElement);
-            frame.appendChild(imageElement);
-
-            imageElement.style.display = 'block';
-            imageElement.style.height = 'auto';
 
             const badge = document.createElement('span');
             badge.className = 'ifm-image-badge';
@@ -609,42 +700,49 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
 
             frame.appendChild(actions);
 
-            if (image.resizable) {
-                const handle = document.createElement('button');
-                handle.className = 'ifm-resize-handle';
-                handle.type = 'button';
-                handle.setAttribute('aria-label', 'Resize image');
-                handle.addEventListener('pointerdown', (event) => startResize(event, image, frame, imageElement, badge));
-                frame.appendChild(handle);
+            return { frame, badge, meta };
+        }
+
+        function createResizeHandle(onPointerDown) {
+            const handle = document.createElement('button');
+            handle.className = 'ifm-resize-handle';
+            handle.type = 'button';
+            handle.setAttribute('aria-label', 'Resize image');
+            handle.addEventListener('pointerdown', onPointerDown);
+            return handle;
+        }
+
+        function initializeImageElementState(imageElement, onReady, onError) {
+            imageElement.addEventListener('load', onReady, { once: true });
+            imageElement.addEventListener('error', onError, { once: true });
+
+            if (imageElement instanceof HTMLImageElement) {
+                if (imageElement.complete) {
+                    if (imageElement.naturalWidth > 0) {
+                        onReady();
+                    } else {
+                        onError();
+                    }
+                }
+
+                return;
             }
 
-            const handleImageReady = () => {
-                frame.classList.remove('is-broken');
-                applyInitialImageWidth(frame, imageElement);
-                updateBadge(badge, imageElement);
-            };
-
-            const handleImageError = () => {
-                frame.classList.add('is-broken');
-                meta.textContent = 'Image could not be loaded';
-                frame.style.removeProperty('width');
-                const handle = frame.querySelector('.ifm-resize-handle');
-
-                if (handle) {
-                    handle.remove();
+            requestAnimationFrame(() => {
+                if (getRenderedImageWidth(imageElement) > 0) {
+                    onReady();
+                    return;
                 }
-            };
 
-            imageElement.addEventListener('load', handleImageReady, { once: true });
-            imageElement.addEventListener('error', handleImageError, { once: true });
+                requestAnimationFrame(() => {
+                    if (getRenderedImageWidth(imageElement) > 0) {
+                        onReady();
+                        return;
+                    }
 
-            if (imageElement.complete) {
-                if (imageElement.naturalWidth > 0) {
-                    handleImageReady();
-                } else {
-                    handleImageError();
-                }
-            }
+                    onReady();
+                });
+            });
         }
 
         function createActionButton(label, onClick) {
@@ -660,14 +758,84 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
             return button;
         }
 
-        function updateBadge(badge, imageElement) {
-            const measuredWidth = Math.round(imageElement.getBoundingClientRect().width);
-            const fallbackWidth = Number(imageElement.getAttribute('width')) || imageElement.naturalWidth || 0;
-            badge.textContent = String(measuredWidth || fallbackWidth) + 'px';
+        function once(callback) {
+            let invoked = false;
+
+            return () => {
+                if (invoked) {
+                    return;
+                }
+
+                invoked = true;
+                callback();
+            };
         }
 
-        function applyInitialImageWidth(frame, imageElement) {
-            const preferredWidth = Number(imageElement.getAttribute('width')) || imageElement.naturalWidth || 320;
+        function updateBadge(badge, imageElement) {
+            badge.textContent = String(getRenderedImageWidth(imageElement) || 0) + 'px';
+        }
+
+        function getRenderedImageWidth(imageElement) {
+            const measuredWidth = Math.round(imageElement.getBoundingClientRect().width);
+
+            if (measuredWidth > 0) {
+                return measuredWidth;
+            }
+
+            return getExplicitImageWidth(imageElement)
+                || getIntrinsicImageWidth(imageElement)
+                || 0;
+        }
+
+        function getRenderedImageHeight(imageElement) {
+            const measuredHeight = Math.round(imageElement.getBoundingClientRect().height);
+
+            if (measuredHeight > 0) {
+                return measuredHeight;
+            }
+
+            return getExplicitImageHeight(imageElement) || 0;
+        }
+
+        function getExplicitImageWidth(imageElement) {
+            return getNumericAttribute(imageElement, 'width');
+        }
+
+        function getExplicitImageHeight(imageElement) {
+            return getNumericAttribute(imageElement, 'height');
+        }
+
+        function getIntrinsicImageWidth(imageElement) {
+            if (imageElement instanceof HTMLImageElement) {
+                return imageElement.naturalWidth || 0;
+            }
+
+            if (typeof imageElement.getBBox === 'function') {
+                try {
+                    return Math.round(imageElement.getBBox().width) || 0;
+                } catch {
+                    return 0;
+                }
+            }
+
+            return 0;
+        }
+
+        function getNumericAttribute(imageElement, attributeName) {
+            const rawValue = imageElement.getAttribute(attributeName);
+
+            if (!rawValue) {
+                return 0;
+            }
+
+            const parsed = Number.parseFloat(rawValue);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+
+        function applyInitialWrappedImageWidth(frame, imageElement) {
+            const preferredWidth = getExplicitImageWidth(imageElement)
+                || getIntrinsicImageWidth(imageElement)
+                || 320;
             const containerWidth = getAvailableImageWidth(frame);
             const nextWidth = Math.max(1, Math.min(preferredWidth, containerWidth));
 
@@ -675,6 +843,16 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
             imageElement.style.width = '100%';
             imageElement.style.maxWidth = '100%';
             imageElement.style.height = 'auto';
+        }
+
+        function syncOverlayFrame(frame, imageElement) {
+            const imageRect = imageElement.getBoundingClientRect();
+            const articleRect = article.getBoundingClientRect();
+
+            frame.style.left = String(Math.round(imageRect.left - articleRect.left + article.scrollLeft)) + 'px';
+            frame.style.top = String(Math.round(imageRect.top - articleRect.top + article.scrollTop)) + 'px';
+            frame.style.width = String(Math.max(1, Math.round(imageRect.width))) + 'px';
+            frame.style.height = String(Math.max(1, Math.round(imageRect.height))) + 'px';
         }
 
         function getAvailableImageWidth(frame) {
@@ -692,7 +870,7 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
             return Math.max(120, Math.floor(host.clientWidth - paddingLeft - paddingRight - scrollbarWidth));
         }
 
-        function startResize(event, image, frame, imageElement, badge) {
+        function startWrappedResize(event, image, frame, imageElement, badge) {
             event.preventDefault();
 
             const handle = event.currentTarget;
@@ -753,6 +931,92 @@ export class MarkdownImageResizerCustomEditorProvider implements vscode.CustomTe
             handle.addEventListener('pointermove', onPointerMove);
             handle.addEventListener('pointerup', onPointerUp);
             handle.addEventListener('pointercancel', onPointerCancel);
+        }
+
+        function startOverlayResize(event, image, frame, imageElement, badge, syncFrame) {
+            event.preventDefault();
+
+            const handle = event.currentTarget;
+            const pointerId = event.pointerId;
+            const startX = event.clientX;
+            const startWidth = getRenderedImageWidth(imageElement) || frame.getBoundingClientRect().width;
+            const startHeight = getRenderedImageHeight(imageElement) || frame.getBoundingClientRect().height;
+            const minWidth = Number(state.settings.minImageWidth) || 48;
+            const maxWidth = getAvailableImageWidth(frame);
+            const aspectRatio = startWidth > 0 && startHeight > 0 ? startWidth / startHeight : 1;
+            const originalWidth = imageElement.getAttribute('width');
+            const originalHeight = imageElement.getAttribute('height');
+
+            frame.classList.add('is-resizing');
+            handle.setPointerCapture(pointerId);
+
+            const onPointerMove = (moveEvent) => {
+                const delta = moveEvent.clientX - startX;
+                const nextWidth = Math.min(maxWidth, Math.max(minWidth, Math.round(startWidth + delta)));
+
+                applyOverlayImageSize(imageElement, nextWidth, aspectRatio);
+                syncFrame();
+                updateBadge(badge, imageElement);
+            };
+
+            const finishResize = (commit) => (finishEvent) => {
+                if (finishEvent.pointerId !== pointerId) {
+                    return;
+                }
+
+                handle.releasePointerCapture(pointerId);
+                handle.removeEventListener('pointermove', onPointerMove);
+                handle.removeEventListener('pointerup', onPointerUp);
+                handle.removeEventListener('pointercancel', onPointerCancel);
+                frame.classList.remove('is-resizing');
+
+                if (!commit) {
+                    restoreOverlayImageSize(imageElement, originalWidth, originalHeight);
+                    syncFrame();
+                    updateBadge(badge, imageElement);
+                    return;
+                }
+
+                vscode.postMessage({
+                    type: 'resizeImage',
+                    payload: {
+                        imageId: image.id,
+                        width: Math.min(maxWidth, Math.max(minWidth, getRenderedImageWidth(imageElement))),
+                        documentVersion: state.version
+                    }
+                });
+            };
+
+            const onPointerUp = finishResize(true);
+            const onPointerCancel = finishResize(false);
+
+            handle.addEventListener('pointermove', onPointerMove);
+            handle.addEventListener('pointerup', onPointerUp);
+            handle.addEventListener('pointercancel', onPointerCancel);
+        }
+
+        function applyOverlayImageSize(imageElement, width, aspectRatio) {
+            imageElement.setAttribute('width', String(width));
+
+            if (aspectRatio > 0) {
+                imageElement.setAttribute('height', String(Math.max(1, Math.round(width / aspectRatio))));
+            } else {
+                imageElement.removeAttribute('height');
+            }
+        }
+
+        function restoreOverlayImageSize(imageElement, originalWidth, originalHeight) {
+            if (originalWidth === null) {
+                imageElement.removeAttribute('width');
+            } else {
+                imageElement.setAttribute('width', originalWidth);
+            }
+
+            if (originalHeight === null) {
+                imageElement.removeAttribute('height');
+            } else {
+                imageElement.setAttribute('height', originalHeight);
+            }
         }
     </script>
 </body>

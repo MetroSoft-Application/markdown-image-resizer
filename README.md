@@ -10,7 +10,7 @@ Opens Markdown in a custom editor with draggable image resizing, reset actions, 
 - Jump from a preview image back to its Markdown source
 - Support both inline Markdown images and reference-style Markdown images
 - Convert Markdown image syntax into HTML `<img>` tags with a `width` attribute when you commit a resize
-- Update existing HTML `<img>` tags while preserving unrelated attributes
+- Update existing HTML `<img>` tags and SVG `<image>` tags while preserving unrelated attributes
 - Keep the built-in Markdown editor as the default editing experience
 
 ## Usage
@@ -32,7 +32,7 @@ Opens Markdown in a custom editor with draggable image resizing, reset actions, 
 
 1. Hover a resized image.
 2. Click **Reset**.
-3. The `width` attribute is removed from the HTML `<img>` tag.
+3. The `width` attribute is removed from the HTML image tag.
 
 ### Jump between preview and source
 
@@ -45,9 +45,9 @@ Opens Markdown in a custom editor with draggable image resizing, reset actions, 
 ## Notes
 
 - Opt-in custom editor view only. The default Markdown editor remains unchanged.
-- The current release supports inline Markdown images, reference-style Markdown images, and HTML `<img>` tags.
+- The current release supports inline Markdown images, reference-style Markdown images, HTML `<img>` tags, and SVG `<image>` tags.
 - Remote `http` and `https` images are shown as read-only and are not resizable.
-- Reset removes committed `width` values from HTML `<img>` tags and leaves other unrelated attributes intact.
+- Reset removes committed `width` values from HTML image tags and leaves other unrelated attributes intact.
 - General text editing remains in the built-in Markdown editor.
 
 ## License

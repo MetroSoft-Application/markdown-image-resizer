@@ -4,6 +4,8 @@ import MarkdownIt from 'markdown-it';
 import { escapeHtmlAttribute, upsertHtmlAttribute } from './sourceRewrite';
 
 type SourceImageKind = 'markdown' | 'html';
+type HtmlImageTagName = 'img' | 'image';
+type HtmlImageSourceAttribute = 'src' | 'href' | 'xlink:href';
 
 export interface SourceImageReference {
     id: string;
@@ -17,6 +19,8 @@ export interface SourceImageReference {
     renderSrc: string;
     resizable: boolean;
     canReset: boolean;
+    htmlTagName?: HtmlImageTagName;
+    htmlSourceAttribute?: HtmlImageSourceAttribute;
 }
 
 export interface WebviewSettings {
@@ -32,7 +36,7 @@ export interface MarkdownViewModel {
     settings: WebviewSettings;
 }
 
-const HTML_IMAGE_PATTERN = /<img\b[^>]*>/gi;
+const HTML_IMAGE_PATTERN = /<(?:img|image)\b[^>]*>/gi;
 
 const markdownRenderer = createMarkdownRenderer();
 const DEFAULT_WEBVIEW_SETTINGS: WebviewSettings = {
@@ -73,7 +77,7 @@ export function getWebviewSettings(): WebviewSettings {
 }
 
 /**
- * ソース上の画像記法と HTML img タグを抽出します。
+ * ソース上の画像記法と HTML 画像タグを抽出します。
  * @param document 解析対象の TextDocument です。
  * @param webview 描画に使用する Webview です。
  * @returns ソース順に並んだ画像参照一覧です。
@@ -103,7 +107,7 @@ function extractSourceImages(
 }
 
 /**
- * 抽出済み画像を描画用 HTML img タグへ正規化したソースを生成します。
+ * 抽出済み画像を描画用 HTML 画像タグへ正規化したソースを生成します。
  * @param source 元の Markdown ソースです。
  * @param images 抽出済みの画像一覧です。
  * @returns MarkdownIt に渡す装飾済みソースです。
@@ -125,13 +129,13 @@ function decorateSourceImages(source: string, images: SourceImageReference[]): s
 }
 
 /**
- * 既存の HTML img タグへ描画用属性を付与します。
+ * 既存の HTML 画像タグへ描画用属性を付与します。
  * @param image 更新対象の画像参照です。
- * @returns 装飾済み HTML img タグです。
+ * @returns 装飾済み HTML 画像タグです。
  */
 function decorateHtmlImageTag(image: SourceImageReference): string {
     let tag = image.originalText;
-    tag = upsertHtmlAttribute(tag, 'src', image.renderSrc);
+    tag = upsertHtmlImageSourceAttribute(tag, image, image.renderSrc);
     tag = upsertHtmlAttribute(tag, 'data-imagefree-id', image.id);
     tag = upsertHtmlAttribute(tag, 'data-imagefree-resizable', image.resizable ? 'true' : 'false');
     tag = upsertHtmlAttribute(tag, 'data-imagefree-kind', image.kind);
@@ -161,18 +165,19 @@ function buildRenderedMarkdownImageTag(image: SourceImageReference): string {
 }
 
 /**
- * HTML img タグから属性値を抽出します。
- * @param tag 解析対象の HTML img タグです。
+ * HTML 画像タグから属性値を抽出します。
+ * @param tag 解析対象の HTML 画像タグです。
  * @returns 小文字属性名をキーに持つ属性マップです。
  */
 function parseHtmlAttributes(tag: string): Record<string, string> {
     const attributes: Record<string, string> = {};
     const attributePattern = /([:\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/g;
+    const tagName = parseHtmlTagName(tag);
 
     for (const match of tag.matchAll(attributePattern)) {
         const attributeName = match[1].toLowerCase();
 
-        if (attributeName === 'img') {
+        if (attributeName === tagName) {
             continue;
         }
 
@@ -181,6 +186,88 @@ function parseHtmlAttributes(tag: string): Record<string, string> {
     }
 
     return attributes;
+}
+
+/**
+ * HTML 画像タグ名を抽出します。
+ * @param tag 解析対象のタグ文字列です。
+ * @returns 小文字化したタグ名、または undefined です。
+ */
+function parseHtmlTagName(tag: string): string | undefined {
+    const match = tag.match(/^<\s*([:\w-]+)/);
+    return match?.[1]?.toLowerCase();
+}
+
+/**
+ * 画像タグが使っているソース属性名を特定します。
+ * @param attributes 画像タグの属性マップです。
+ * @returns 利用されているソース属性名、または undefined です。
+ */
+function resolveHtmlImageSourceAttribute(
+    attributes: Record<string, string>
+): HtmlImageSourceAttribute | undefined {
+    if (Object.prototype.hasOwnProperty.call(attributes, 'src')) {
+        return 'src';
+    }
+
+    if (Object.prototype.hasOwnProperty.call(attributes, 'href')) {
+        return 'href';
+    }
+
+    if (Object.prototype.hasOwnProperty.call(attributes, 'xlink:href')) {
+        return 'xlink:href';
+    }
+
+    return undefined;
+}
+
+/**
+ * HTML 画像タグの描画用ソース属性を書き換えます。
+ * @param tag 更新対象のタグです。
+ * @param image 対象画像の参照情報です。
+ * @param renderSrc 描画用の解決済みソースです。
+ * @returns 更新後のタグです。
+ */
+function upsertHtmlImageSourceAttribute(
+    tag: string,
+    image: SourceImageReference,
+    renderSrc: string
+): string {
+    const sourceAttribute = image.htmlSourceAttribute ?? 'src';
+
+    if (image.htmlTagName !== 'image' || sourceAttribute === 'src') {
+        return upsertHtmlAttribute(tag, sourceAttribute, renderSrc);
+    }
+
+    let nextTag = tag;
+    const hasHref = hasHtmlAttribute(tag, 'href');
+    const hasXlinkHref = hasHtmlAttribute(tag, 'xlink:href');
+
+    if (hasHref || sourceAttribute === 'href') {
+        nextTag = upsertHtmlAttribute(nextTag, 'href', renderSrc);
+    }
+
+    if (hasXlinkHref || sourceAttribute === 'xlink:href') {
+        nextTag = upsertHtmlAttribute(nextTag, 'xlink:href', renderSrc);
+    }
+
+    if (!hasHref && !hasXlinkHref) {
+        nextTag = upsertHtmlAttribute(nextTag, sourceAttribute, renderSrc);
+    }
+
+    return nextTag;
+}
+
+/**
+ * HTML 属性の有無を判定します。
+ * @param tag 解析対象のタグです。
+ * @param attributeName 判定する属性名です。
+ * @returns 属性が存在すれば true です。
+ */
+function hasHtmlAttribute(tag: string, attributeName: string): boolean {
+    const escapedAttributeName = attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`\\s${escapedAttributeName}\\s*=`, 'i');
+    return pattern.test(tag);
 }
 
 /**
@@ -301,7 +388,7 @@ function getFenceMarker(line: string): string | undefined {
 }
 
 /**
- * 1 行内の HTML img タグを抽出します。
+ * 1 行内の HTML 画像タグを抽出します。
  * @param line 現在の行です。
  * @param lineOffset 行先頭のオフセットです。
  * @param source ドキュメント全体のソースです。
@@ -320,9 +407,22 @@ function scanHtmlImagesInLine(
         }
 
         const tag = match[0];
-        const attributes = parseHtmlAttributes(tag);
+        const tagName = parseHtmlTagName(tag);
 
-        if (!attributes.src) {
+        if (tagName !== 'img' && tagName !== 'image') {
+            continue;
+        }
+
+        const attributes = parseHtmlAttributes(tag);
+        const sourceAttribute = resolveHtmlImageSourceAttribute(attributes);
+
+        if (!sourceAttribute) {
+            continue;
+        }
+
+        const sourceValue = attributes[sourceAttribute];
+
+        if (!sourceValue) {
             continue;
         }
 
@@ -331,13 +431,15 @@ function scanHtmlImagesInLine(
 
         images.push({
             kind: 'html',
-            src: attributes.src,
+            src: sourceValue,
             alt: attributes.alt ?? '',
             title: attributes.title,
             originalText: source.slice(startOffset, endOffset),
             startOffset,
             endOffset,
-            canReset: Object.prototype.hasOwnProperty.call(attributes, 'width')
+            canReset: Object.prototype.hasOwnProperty.call(attributes, 'width'),
+            htmlTagName: tagName,
+            htmlSourceAttribute: sourceAttribute
         });
     }
 

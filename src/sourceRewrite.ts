@@ -152,10 +152,10 @@ function buildMarkdownReplacement(image: SourceImageReference, width: number): s
 }
 
 /**
- * 既存の HTML img タグから高さ属性を除去し、width を更新します。
+ * 既存の HTML 画像タグから高さ属性を除去し、width を更新します。
  * @param image 更新対象の画像参照です。
  * @param width 正規化済みの幅です。
- * @returns 更新後の HTML img タグです。
+ * @returns 更新後の HTML 画像タグです。
  */
 function buildHtmlReplacement(image: SourceImageReference, width: number): string {
     const withoutHeight = removeHtmlAttribute(image.originalText, 'height');
@@ -163,9 +163,9 @@ function buildHtmlReplacement(image: SourceImageReference, width: number): strin
 }
 
 /**
- * 既存の HTML img タグから width / height を除去して自然サイズへ戻します。
+ * 既存の HTML 画像タグから width / height を除去して自然サイズへ戻します。
  * @param image 更新対象の画像参照です。
- * @returns 更新後の HTML img タグです。
+ * @returns 更新後の HTML 画像タグです。
  */
 function buildHtmlResetReplacement(image: SourceImageReference): string {
     const withoutHeight = removeHtmlAttribute(image.originalText, 'height');

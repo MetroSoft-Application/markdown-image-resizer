@@ -23,4 +23,4 @@
 
 ## HTML image after ignored blocks
 
-<img src="./assets/portrait-card.svg" alt="Resizable HTML image" width="260">
+<imgge src="./assets/portrait-card.svg" alt="Resizable HTML image" width="342">
